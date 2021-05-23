@@ -7,7 +7,8 @@ export const ItemDimensions = {
 
 export const GameEvents = {
     ON_CLICK_PIECE: 'onclickpiece',
-    ON_CLICK_TARGET: 'onclicktarget'
+    ON_CLICK_TARGET: 'onclicktarget',
+    ON_PIECE_EATEN: 'onpieceeaten'
 };
 
 export const Events = {

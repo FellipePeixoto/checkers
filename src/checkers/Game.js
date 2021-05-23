@@ -15,7 +15,7 @@ export class Game extends PIXI.Container {
             this._player2Points = player2Points;
 
             const patchedBoard = { pieces: [] };
-            for (const { line, column, playerIndex } of board.pieces) {
+            for (const { line, column, playerIndex, isKing, visible } of board.pieces) {
                 patchedBoard.pieces.push( 
                     { 
                         coordinate: 
@@ -23,7 +23,9 @@ export class Game extends PIXI.Container {
                             line: parseInt(line), 
                             column: parseInt(column) 
                         }, 
-                        playerIndex: parseInt(playerIndex)
+                        playerIndex: parseInt(playerIndex),
+                        isKing,
+                        visible 
                     } )
             }
             this._board = new Board(patchedBoard);
@@ -36,6 +38,7 @@ export class Game extends PIXI.Container {
 
         this._board.on(GameEvents.ON_CLICK_PIECE, (piece) => this._onClickPiece(piece));
         this._board.on(GameEvents.ON_CLICK_TARGET, () => this._onClickTarget());
+        this._board.on(GameEvents.ON_PIECE_EATEN, () => this._onPieceEaten());
         
         this._board.x = 100;
         this._board.y = 100;
@@ -53,17 +56,17 @@ export class Game extends PIXI.Container {
         for (let i = 0; i < this._board.tiles.length; i++) {
             for (const tile of this._board.tiles[i]) {
                 if (tile) {
-                    const { coordinate, playerIndex, isKing } = tile;
+                    const { coordinate, playerIndex, isKing, visible } = tile;
                     state.board.pieces.push({
                         line: coordinate.line,
                         column: coordinate.column,
                         playerIndex,
-                        king: isKing
+                        king: isKing,
+                        visible
                     });
                 }
             }
         }
-
         return state;
     }
 
@@ -76,6 +79,16 @@ export class Game extends PIXI.Container {
 
     _onClickTarget () {
         this._board.hidePossibleMoves();
+        this._board.outOfGame();
         this._turn = this._turn === 0 ? 1 : 0; 
+    }
+
+    _onPieceEaten () {
+        if (this._turn === 0)
+        {
+            this._player1Points += 1; 
+        } else {
+            this._player2Points += 1; 
+        }
     }
 }

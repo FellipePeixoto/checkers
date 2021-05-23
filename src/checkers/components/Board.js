@@ -43,8 +43,20 @@ export class Board extends PIXI.Container {
                         line,
                         column
                     },
-                    targets: []
+                    enemiesEaten: []
                 } ];
+        }
+
+        if (piece === undefined && lastTileWas === undefined) {
+            return [
+                {
+                    coordinate: {
+                        line: startCoordinate.line,
+                        column: startCoordinate.column
+                    },
+                    enemiesEaten
+                }
+            ];
         }
 
         if (piece !== undefined  && piece.playerIndex === playerIndex) {
@@ -53,6 +65,23 @@ export class Board extends PIXI.Container {
 
         if (piece !== undefined && lastTileWas !== undefined) {
             return [];
+        }
+
+        if (piece === undefined && lastTileWas !== undefined) {
+            const forRight = this.checkMoveTo({ direction: { line: direction.line, column: 1 }, startCoordinate: { line, column }, playerIndex, undefined, enemiesEaten });
+            const forLeft = this.checkMoveTo({ direction: { line: direction.line, column: -1 }, startCoordinate: { line, column }, playerIndex, undefined, enemiesEaten });
+
+            return [
+                {
+                    coordinate: {
+                        line,
+                        column
+                    },
+                    enemiesEaten: [...enemiesEaten]
+                },
+                ...forRight,
+                ...forLeft
+            ];
         }
 
         if (piece !== undefined  && piece.playerIndex !== playerIndex) {
@@ -81,10 +110,10 @@ export class Board extends PIXI.Container {
         const { coordinate, playerIndex, isKing } = this._currentPiece;
 
         const yModifier = playerIndex === 0 ? 1 : -1;
-        const moves = [];
+        this._moves = [];
 
         for (let i = -1; i < 2; i += 2) {
-            moves.push(...this.checkMoveTo(
+            this._moves.push(...this.checkMoveTo(
                 { 
                     playerIndex, 
                     startCoordinate: coordinate, 
@@ -96,7 +125,7 @@ export class Board extends PIXI.Container {
                 }));
 
                 if (isKing) {
-                    moves.push(...this.checkMoveTo(
+                    this._moves.push(...this.checkMoveTo(
                         { 
                             playerIndex, 
                             startCoordinate: coordinate, 
@@ -109,7 +138,7 @@ export class Board extends PIXI.Container {
                 }
         }
 
-        this._highlightMoves(moves);
+        this._highlightMoves(this._moves);
     }
 
     hidePossibleMoves () {
@@ -122,6 +151,20 @@ export class Board extends PIXI.Container {
 
     updateCurrentPiece (piece) {
         this._currentPiece = piece;
+    }
+
+    outOfGame () {
+        const { line, column } = this._currentTargetCoordinate;
+        
+        const move = this._moves.filter( move => {
+            return move.coordinate.line === line &&  move.coordinate.column === column;
+        });
+
+        for (const enemyEaten of move[0].enemiesEaten) {
+            this._board[enemyEaten.coordinate.line][enemyEaten.coordinate.column] = undefined;
+            enemyEaten.visible = false;
+            this.emit(GameEvents.ON_PIECE_EATEN);
+        }
     }
 
     _isOutOfBounds (coordinate) {
@@ -162,6 +205,8 @@ export class Board extends PIXI.Container {
         const { line, column } = coordinate;
         const { line: oldLine, column: oldColumn } = this._currentPiece.coordinate;
 
+        this._currentTargetCoordinate = coordinate;
+
         this.emit(GameEvents.ON_CLICK_TARGET);
         this._board[oldLine][oldColumn] = undefined;
         this._currentPiece.coordinate = coordinate;
@@ -191,8 +236,10 @@ export class Board extends PIXI.Container {
     _setupBoardFromSave (pieces) {
         this._drawBoard();
         
-        for (const piece of pieces) {
-            this._addPiece(piece.coordinate, piece.playerIndex);
+        for (const { coordinate, playerIndex, visible, isKing } of pieces) {
+            if (visible) {
+                this._addPiece({ coordinate, playerIndex, visible, isKing });
+            }
         }
     }
 
@@ -204,31 +251,31 @@ export class Board extends PIXI.Container {
                 // BOARD TOP
                 if (i >= 0 && i <= 2) {
                     if (i % 2 === 0 && j % 2 !== 0) {
-                        this._addPiece({line: i, column: j}, 0);
+                        this._addPiece( {coordinate: { line: i, column: j }, playerIndex: 0} );
                     }
                     if (i % 2 !== 0 && j % 2 === 0) {
-                        this._addPiece({line: i, column: j}, 0);
+                        this._addPiece( {coordinate: { line: i, column: j }, playerIndex: 0} );
                     }
                 }
                 
                 // BOARD BOTTOM
                 if (i >= 5 && i <= 7) {
                     if (i % 2 === 0 && j % 2 !== 0) {
-                        this._addPiece({line: i, column: j}, 1);
+                        this._addPiece( {coordinate: { line: i, column: j }, playerIndex: 1} );
                     }
                     if (i % 2 !== 0 && j % 2 === 0) {
-                        this._addPiece({line: i, column: j}, 1);
+                        this._addPiece( {coordinate: { line: i, column: j }, playerIndex: 1} );
                     }
                 }
             }
         }
     }
 
-    _addPiece (coordinate, playerIndex) {
-        const piece = new Piece(coordinate, playerIndex);
+    _addPiece ({ coordinate, playerIndex, isKing }) {
+        const piece = new Piece({ coordinate, playerIndex, isKing });
         this._board[coordinate.line][coordinate.column] = piece;
         this.addChild(piece);
-
+        
         this._setupPieceEvent(piece);
     }
 

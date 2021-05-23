@@ -39,7 +39,7 @@ function savegame (gameState) {
     nodeBoard.appendChild(nodePieces);
     xmlFile.getElementsByTagName('game')[0].appendChild(nodeBoard);
     
-    for (const { line, column, playerIndex, king } of board.pieces) {
+    for (const { line, column, playerIndex, king, visible } of board.pieces) {
         const nodePiece = xmlFile.createElement('piece');
         nodePieces.appendChild(nodePiece);
 
@@ -62,5 +62,12 @@ function savegame (gameState) {
         const nodeKingValue = xmlFile.createTextNode(king);
         nodeKing.appendChild(nodeKingValue);
         nodePiece.appendChild(nodeKing);
+
+        const nodeVisible = xmlFile.createElement('visible');
+        const nodeVisibleValue = xmlFile.createTextNode(visible);
+        nodeVisible.appendChild(nodeVisibleValue);
+        nodePiece.appendChild(nodeVisible);
     }
+
+    console.log(xmlFile);
 }

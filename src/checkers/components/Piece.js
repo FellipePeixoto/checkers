@@ -6,11 +6,11 @@ const player1Color = 0x000000;
 const player2Color = 0xFF0000;
 
 export class Piece extends PIXI.Container {
-    constructor(coordinate, playerIndex) {
+    constructor({ coordinate, playerIndex, isKing = false }) {
         super();
         this._coordinate = coordinate;
         this._playerIndex = playerIndex;
-        this._isKing = false;
+        this._isKing = isKing;
 
         this._circle = new PIXI.Graphics();
         this._circle.beginFill(playerIndex === 0 ? player1Color : player2Color);
