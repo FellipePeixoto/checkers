@@ -1,0 +1,34 @@
+<game>
+	<round>0</round>
+	<player1>0</player1>
+	<player2>0</player2>
+	<board>
+		<pieces>
+			<piece>
+                <line>1</line>
+                <column>4</column>
+                <playerIndex>0</playerIndex>
+            </piece>
+			<piece>
+                <line>1</line>
+                <column>6</column>
+                <playerIndex>0</playerIndex>
+            </piece>
+            <piece>
+                <line>3</line>
+                <column>4</column>
+                <playerIndex>0</playerIndex>
+            </piece>
+            <piece>
+                <line>3</line>
+                <column>6</column>
+                <playerIndex>0</playerIndex>
+            </piece>
+            <piece>
+                <line>4</line>
+                <column>7</column>
+                <playerIndex>1</playerIndex>
+            </piece>
+		</pieces>
+	</board>
+</game>
