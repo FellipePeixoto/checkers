@@ -17,6 +17,10 @@ export class Board extends PIXI.Container {
         }
     }
 
+    get tiles () {
+        return this._board;
+    }
+
     checkMoveTo({ playerIndex, startCoordinate, direction, moveInfo = [], enemyEaten }) {
         const targetCoordinate = 
         { 
