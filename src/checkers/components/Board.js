@@ -21,7 +21,7 @@ export class Board extends PIXI.Container {
         return this._board;
     }
 
-    checkMoveTo({ playerIndex, startCoordinate, direction, moveInfo = [], enemyEaten }) {
+    checkMoveTo({ playerIndex, startCoordinate, direction, lastTileWas = undefined, enemiesEaten = [] }) {
         const targetCoordinate = 
         { 
             line: startCoordinate.line + direction.line,
@@ -31,48 +31,47 @@ export class Board extends PIXI.Container {
         const { line, column } = targetCoordinate;
 
         if (this._isOutOfBounds(targetCoordinate)) {
-            if (moveInfo.length > 0) {
-                moveInfo.pop();
-            }
-            return moveInfo;
+            return [];
         }
 
         const piece = this._board[line][column];
 
-        if (piece === undefined && enemyEaten) {
-            return moveInfo;
+        if (piece === undefined && enemiesEaten.length === 0) {
+            return [ 
+                {
+                    coordinate: {
+                        line,
+                        column
+                    },
+                    targets: []
+                } ];
         }
 
-        if (piece === undefined && moveInfo.length > 0) {
-            const moveInfoLast = moveInfo[moveInfo.length - 1];
-            moveInfo[moveInfo.length - 1] = { coordinate: {line, column} , target: moveInfoLast.target };
+        if (piece !== undefined  && piece.playerIndex === playerIndex) {
+            return [];
+        }
 
-            const forRight = this.checkMoveTo({ direction: { line: direction.line, column: 1 }, startCoordinate: { line, column }, playerIndex, moveInfo: [], enemyEaten: true });
-            const forLeft = this.checkMoveTo({ direction: { line: direction.line, column: -1 }, startCoordinate: { line, column }, playerIndex, moveInfo: [], enemyEaten: true });
-            
-            return [...moveInfo, ...forRight, ...forLeft];
+        if (piece !== undefined && lastTileWas !== undefined) {
+            return [];
+        }
+
+        if (piece !== undefined  && piece.playerIndex !== playerIndex) {
+            return this.checkMoveTo({ playerIndex, startCoordinate: targetCoordinate, direction, lastTileWas: piece, enemiesEaten: [...enemiesEaten, piece] });
         }
 
         if (piece === undefined) {
-            return [{ coordinate: targetCoordinate }, ...moveInfo];
-        }
+            const moveInfo = [{
+                coordinate: {
+                    line,
+                    column
+                },
+                enemiesEaten
+            }];
 
-        if (moveInfo.length > 0) {
-            moveInfo.pop();
-            return moveInfo;
-        }
-
-        if (piece.playerIndex === playerIndex) {
-            return moveInfo;
-        }
-
-        if (piece.playerIndex !== playerIndex && moveInfo.length > 0) {
-            const target = moveInfo[moveInfo.length - 1].target;
-            return this.checkMoveTo({ direction, startCoordinate: targetCoordinate, playerIndex, moveInfo: [...moveInfo, { target: piece }] });
-        }
-
-        if (piece.playerIndex !== playerIndex) {
-            return this.checkMoveTo({ direction, startCoordinate: targetCoordinate, playerIndex, moveInfo: [{ target: piece }] });
+            const forRight = this.checkMoveTo({ direction: { line: direction.line, column: 1 }, startCoordinate: { line, column }, playerIndex, enemiesEaten });
+            const forLeft = this.checkMoveTo({ direction: { line: direction.line, column: -1 }, startCoordinate: { line, column }, playerIndex, enemiesEaten });
+            
+            return [...moveInfo, ...forRight, ...forLeft];
         }
     }
 

@@ -28,10 +28,9 @@ export class Game extends PIXI.Container {
             }
             this._board = new Board(patchedBoard);
         } else {
-            // round var
             this._turn = 0;
             this._player1Points = 0;
-            this._player2Points = 1;
+            this._player2Points = 0;
             this._board = new Board();
         }
 
@@ -41,6 +40,31 @@ export class Game extends PIXI.Container {
         this._board.x = 100;
         this._board.y = 100;
         this.addChild(this._board);
+    }
+
+    get state () {
+        const state = {
+            turn: this._turn,
+            player1Points: this._player1Points,
+            player2Points: this._player2Points,
+            board: { pieces: [] }
+        }
+
+        for (let i = 0; i < this._board.tiles.length; i++) {
+            for (const tile of this._board.tiles[i]) {
+                if (tile) {
+                    const { coordinate, playerIndex, isKing } = tile;
+                    state.board.pieces.push({
+                        line: coordinate.line,
+                        column: coordinate.column,
+                        playerIndex,
+                        king: isKing
+                    });
+                }
+            }
+        }
+
+        return state;
     }
 
     _onClickPiece (piece) {
