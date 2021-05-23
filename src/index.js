@@ -5,14 +5,37 @@ import { Game } from './checkers/Game';
 const app = new PIXI.Application(800, 600, { backgroundColor: 0x1099bb });
 document.body.appendChild(app.view);
 
-const game = new Game();
-app.stage.addChild(game);
+let game;
 
-window.addEventListener("beforeunload", function (e) { 
-    savegame(game.state);
-});
+loadgame();
 
-savegame(game.state);
+function loadgame () {
+  // TODO: LOAD XML FROM COMPUTER
+  let xml;
+  if (xml) {
+    const turn = xml.getElementsByTagName('game')[0].getElementsByTagName('turn')[0].childNodes[0].nodeValue;
+    const player1Points = xml.getElementsByTagName('game')[0].getElementsByTagName('player1')[0].childNodes[0].nodeValue;
+    const player2Points = xml.getElementsByTagName('game')[0].getElementsByTagName('player2')[0].childNodes[0].nodeValue;
+
+    const pieces = [];
+    const board = { pieces };
+
+    const piecesXML = xml.getElementsByTagName('pieces')[0].getElementsByTagName('piece');
+    for (const piece of piecesXML) {
+      const line = piece.getElementsByTagName('line')[0].childNodes[0].nodeValue;
+      const column = piece.getElementsByTagName('column')[0].childNodes[0].nodeValue;
+      const playerIndex = piece.getElementsByTagName('playerIndex')[0].childNodes[0].nodeValue;
+      const isKing = piece.getElementsByTagName('king')[0].childNodes[0].nodeValue;
+      const visible = piece.getElementsByTagName('visible')[0].childNodes[0].nodeValue;
+      pieces.push({ line, column, playerIndex, isKing, visible });
+    }
+
+    game = new Game({ turn, player1Points, player2Points, board });
+  } else {
+    game = new Game();
+  }
+  app.stage.addChild(game);
+}
 
 function savegame (gameState) {
     const { turn, player1Points, player2Points, board } = gameState;
@@ -68,6 +91,8 @@ function savegame (gameState) {
         nodeVisible.appendChild(nodeVisibleValue);
         nodePiece.appendChild(nodeVisible);
     }
-
-    console.log(xmlFile);
 }
+
+window.addEventListener("beforeunload", function (e) { 
+  savegame(game.state);
+});
