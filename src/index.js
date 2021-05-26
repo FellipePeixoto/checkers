@@ -1,18 +1,23 @@
 /* eslint-disable */
 import * as PIXI from 'pixi.js';
 import { Game } from './checkers/Game';
+import { GameEvents } from './config/Defaults';
 
-const app = new PIXI.Application(800, 600, { backgroundColor: 0x1099bb });
+const canvasWidth = 800;
+const canvasHeight = 600;
+
+const app = new PIXI.Application(canvasWidth, canvasHeight, { backgroundColor: 0x1099bb });
 document.body.appendChild(app.view);
 
 let game;
 
-loadgame();
+loadAgame();
 
-function loadgame () {
+function loadAgame () {
   // TODO: LOAD XML FROM COMPUTER
   let xml;
   if (xml) {
+    const ended = xml.getElementsByTagName('game')[0].getElementsByTagName('ended')[0].childNodes[0].nodeValue;
     const turn = xml.getElementsByTagName('game')[0].getElementsByTagName('turn')[0].childNodes[0].nodeValue;
     const player1Points = xml.getElementsByTagName('game')[0].getElementsByTagName('player1')[0].childNodes[0].nodeValue;
     const player2Points = xml.getElementsByTagName('game')[0].getElementsByTagName('player2')[0].childNodes[0].nodeValue;
@@ -35,12 +40,22 @@ function loadgame () {
     game = new Game();
   }
   app.stage.addChild(game);
+
+  game.on(GameEvents.ON_PLAY_MADE, () => { savegame(game.state) });
+
+  game.x = canvasWidth / 2 - game.height / 2;
+  game.y = canvasHeight / 2 - game.width / 2;
 }
 
 function savegame (gameState) {
-    const { turn, player1Points, player2Points, board } = gameState;
+    const { ended, turn, player1Points, player2Points, board } = gameState;
 
     const xmlFile = document.implementation.createDocument(null, 'game');
+
+    const nodeEnded = xmlFile.createElement('ended');
+    const nodeEndedValue = xmlFile.createTextNode(ended);
+    nodeEnded.appendChild(nodeEndedValue);
+    xmlFile.getElementsByTagName('game')[0].appendChild(nodeEnded);
 
     const nodeTurn = xmlFile.createElement('turn');
     const nodeTurnValue = xmlFile.createTextNode(turn);
@@ -91,8 +106,62 @@ function savegame (gameState) {
         nodeVisible.appendChild(nodeVisibleValue);
         nodePiece.appendChild(nodeVisible);
     }
+
+    return xmlFile;
 }
 
-window.addEventListener("beforeunload", function (e) { 
-  savegame(game.state);
+const loadGameButton = document.createElement('button');
+const loadGameButtonValue = document.createTextNode('CARREGAR JOGO');
+loadGameButton.appendChild(loadGameButtonValue);
+document.body.appendChild(loadGameButton);
+
+loadGameButton.addEventListener('click', () => {
+  const options = {
+    types: [
+      {
+        description: 'File',
+        accept: {
+          'application/xml': ['.xml']
+        }
+      },
+    ],
+    excludeAcceptAllOption: true,
+    multiple: false
+  };
+
+  window.showOpenFilePicker(options).all( bosta => { console.log(bosta) });
 });
+
+const saveGameButton = document.createElement('button');
+saveGameButton.appendChild(document.createTextNode('SAVE GAME'));
+document.body.appendChild(saveGameButton);
+
+saveGameButton.addEventListener('click', async () => {
+  const options = {
+    types: [
+      {
+        description: 'File',
+        accept: {
+          'application/xml': ['.xml']
+        }
+      },
+    ],
+    excludeAcceptAllOption: true,
+    multiple: false
+  };
+
+  const fileHandle = await window.showSaveFilePicker(options);
+  writeFile(fileHandle, savegame(game.state));
+});
+
+async function writeFile(fileHandle, contents) {
+  const cont = new XMLSerializer().serializeToString(contents);
+  const writable = await fileHandle.createWritable();
+  await writable.write(cont);
+  await writable.close();
+}
+
+async function readFile(fileHandle) {
+  var handle = await fileHandle.getFile();
+  console.log(handle);
+}
