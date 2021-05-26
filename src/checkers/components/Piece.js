@@ -19,6 +19,9 @@ export class Piece extends PIXI.Container {
         this.addChild(this._circle);
 
         this._updatePosition();
+        if (isKing) {
+            this._loadQueen();
+        }
     }
 
     get playerIndex () {
@@ -53,6 +56,14 @@ export class Piece extends PIXI.Container {
         const { line, column } = this._coordinate;
         this.y = line * ItemDimensions.DEFAULT_SIZE + (line * ItemDimensions.DEFAULT_PADDING);
         this.x = column * ItemDimensions.DEFAULT_SIZE + (column * ItemDimensions.DEFAULT_PADDING);
+    }
+
+    _loadQueen() {
+        const crown = new PIXI.Graphics();
+        crown.beginFill(0xFFFFFF);
+        crown.drawCircle(0, 0, ItemDimensions.DEFAULT_CROWN_SIZE);
+        crown.endFill();
+        this.addChild(crown);
     }
 
     _makeMeAQueen() {

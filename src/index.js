@@ -1,5 +1,6 @@
 /* eslint-disable */
 import * as PIXI from 'pixi.js';
+import { Modal, ModalEvents } from './checkers/components/Modal';
 import { Game } from './checkers/Game';
 import { GameEvents } from './config/Defaults';
 
@@ -11,12 +12,39 @@ document.body.appendChild(app.view);
 
 let game;
 
-loadAgame();
+const modal = new Modal()
+app.stage.addChild(modal);
 
-function loadAgame () {
-  // TODO: LOAD XML FROM COMPUTER
+modal.pivot.y = modal.height / 2 ;
+
+modal.x = canvasWidth / 2;
+modal.y = canvasHeight / 2;
+
+modal.on(ModalEvents.YES, () => {
+  loadGameFromServer();
+});
+
+modal.on(ModalEvents.NO, () => {
+  newGame();
+});
+
+function loadGameFromServer () {
   let xml;
-  if (xml) {
+  const xhttp = new XMLHttpRequest();
+  try {
+    xhttp.open("GET", 'https://localhost:44380/api/gamesave', false);
+    xhttp.send();
+
+    if (xhttp.responseText) {
+      const parser = new DOMParser();
+      xml = parser.parseFromString(xhttp.responseText, "text/xml");
+    }
+  } catch (e) {
+
+  }
+
+  if (xml && 
+    xml.getElementsByTagName('game')[0].getElementsByTagName('ended')[0].childNodes[0].nodeValue === 'false') {
     const ended = xml.getElementsByTagName('game')[0].getElementsByTagName('ended')[0].childNodes[0].nodeValue;
     const turn = xml.getElementsByTagName('game')[0].getElementsByTagName('turn')[0].childNodes[0].nodeValue;
     const player1Points = xml.getElementsByTagName('game')[0].getElementsByTagName('player1')[0].childNodes[0].nodeValue;
@@ -35,10 +63,22 @@ function loadAgame () {
       pieces.push({ line, column, playerIndex, isKing, visible });
     }
 
-    game = new Game({ turn, player1Points, player2Points, board });
-  } else {
-    game = new Game();
+    game = new Game({ ended, turn, player1Points, player2Points, board });
   }
+
+  if (!game) {
+    newGame();
+  }
+
+  setupGame();
+}
+
+function newGame () {
+  game = new Game();
+  setupGame();
+}
+
+function setupGame () {
   app.stage.addChild(game);
 
   game.on(GameEvents.ON_PLAY_MADE, () => { savegame(game.state) });
@@ -48,120 +88,75 @@ function loadAgame () {
 }
 
 function savegame (gameState) {
-    const { ended, turn, player1Points, player2Points, board } = gameState;
+  const { ended, turn, player1Points, player2Points, board } = gameState;
 
-    const xmlFile = document.implementation.createDocument(null, 'game');
+  const xmlFile = document.implementation.createDocument(null, 'game');
 
-    const nodeEnded = xmlFile.createElement('ended');
-    const nodeEndedValue = xmlFile.createTextNode(ended);
-    nodeEnded.appendChild(nodeEndedValue);
-    xmlFile.getElementsByTagName('game')[0].appendChild(nodeEnded);
+  const nodeEnded = xmlFile.createElement('ended');
+  const nodeEndedValue = xmlFile.createTextNode(ended);
+  nodeEnded.appendChild(nodeEndedValue);
+  xmlFile.getElementsByTagName('game')[0].appendChild(nodeEnded);
 
-    const nodeTurn = xmlFile.createElement('turn');
-    const nodeTurnValue = xmlFile.createTextNode(turn);
-    nodeTurn.appendChild(nodeTurnValue);
-    xmlFile.getElementsByTagName('game')[0].appendChild(nodeTurn);
+  const nodeTurn = xmlFile.createElement('turn');
+  const nodeTurnValue = xmlFile.createTextNode(turn);
+  nodeTurn.appendChild(nodeTurnValue);
+  xmlFile.getElementsByTagName('game')[0].appendChild(nodeTurn);
 
-    const nodePlayer1 = xmlFile.createElement('player1');
-    const nodePlayer1Value = xmlFile.createTextNode(player1Points);
-    nodePlayer1.appendChild(nodePlayer1Value);
-    xmlFile.getElementsByTagName('game')[0].appendChild(nodePlayer1);
+  const nodePlayer1 = xmlFile.createElement('player1');
+  const nodePlayer1Value = xmlFile.createTextNode(player1Points);
+  nodePlayer1.appendChild(nodePlayer1Value);
+  xmlFile.getElementsByTagName('game')[0].appendChild(nodePlayer1);
 
-    const nodePlayer2 = xmlFile.createElement('player2');
-    const nodePlayer2Value = xmlFile.createTextNode(player2Points);
-    nodePlayer2.appendChild(nodePlayer2Value);
-    xmlFile.getElementsByTagName('game')[0].appendChild(nodePlayer2);
+  const nodePlayer2 = xmlFile.createElement('player2');
+  const nodePlayer2Value = xmlFile.createTextNode(player2Points);
+  nodePlayer2.appendChild(nodePlayer2Value);
+  xmlFile.getElementsByTagName('game')[0].appendChild(nodePlayer2);
 
-    const nodeBoard = xmlFile.createElement('board');
-    const nodePieces = xmlFile.createElement('pieces');
-    nodeBoard.appendChild(nodePieces);
-    xmlFile.getElementsByTagName('game')[0].appendChild(nodeBoard);
-    
-    for (const { line, column, playerIndex, king, visible } of board.pieces) {
-        const nodePiece = xmlFile.createElement('piece');
-        nodePieces.appendChild(nodePiece);
+  const nodeBoard = xmlFile.createElement('board');
+  const nodePieces = xmlFile.createElement('pieces');
+  nodeBoard.appendChild(nodePieces);
+  xmlFile.getElementsByTagName('game')[0].appendChild(nodeBoard);
+  
+  for (const { line, column, playerIndex, king, visible } of board.pieces) {
+      const nodePiece = xmlFile.createElement('piece');
+      nodePieces.appendChild(nodePiece);
 
-        const nodeLine = xmlFile.createElement('line');
-        const nodeLineValue = xmlFile.createTextNode(line);
-        nodeLine.appendChild(nodeLineValue);
-        nodePiece.appendChild(nodeLine);
-        
-        const nodeColumn = xmlFile.createElement('column');
-        const nodeColumnValue = xmlFile.createTextNode(column);
-        nodeColumn.appendChild(nodeColumnValue);
-        nodePiece.appendChild(nodeColumn);
+      const nodeLine = xmlFile.createElement('line');
+      const nodeLineValue = xmlFile.createTextNode(line);
+      nodeLine.appendChild(nodeLineValue);
+      nodePiece.appendChild(nodeLine);
+      
+      const nodeColumn = xmlFile.createElement('column');
+      const nodeColumnValue = xmlFile.createTextNode(column);
+      nodeColumn.appendChild(nodeColumnValue);
+      nodePiece.appendChild(nodeColumn);
 
-        const nodePlayerIndex = xmlFile.createElement('playerindex');
-        const nodePlayerIndexValue = xmlFile.createTextNode(playerIndex);
-        nodePlayerIndex.appendChild(nodePlayerIndexValue);
-        nodePiece.appendChild(nodePlayerIndex);
-        
-        const nodeKing = xmlFile.createElement('king');
-        const nodeKingValue = xmlFile.createTextNode(king);
-        nodeKing.appendChild(nodeKingValue);
-        nodePiece.appendChild(nodeKing);
+      const nodePlayerIndex = xmlFile.createElement('playerIndex');
+      const nodePlayerIndexValue = xmlFile.createTextNode(playerIndex);
+      nodePlayerIndex.appendChild(nodePlayerIndexValue);
+      nodePiece.appendChild(nodePlayerIndex);
+      
+      const nodeKing = xmlFile.createElement('king');
+      const nodeKingValue = xmlFile.createTextNode(king);
+      nodeKing.appendChild(nodeKingValue);
+      nodePiece.appendChild(nodeKing);
 
-        const nodeVisible = xmlFile.createElement('visible');
-        const nodeVisibleValue = xmlFile.createTextNode(visible);
-        nodeVisible.appendChild(nodeVisibleValue);
-        nodePiece.appendChild(nodeVisible);
-    }
+      const nodeVisible = xmlFile.createElement('visible');
+      const nodeVisibleValue = xmlFile.createTextNode(visible);
+      nodeVisible.appendChild(nodeVisibleValue);
+      nodePiece.appendChild(nodeVisible);
+  }
 
-    return xmlFile;
-}
+  try {
+    const xhttp = new XMLHttpRequest();
+    xhttp.open("POST", "https://localhost:44380/api/gamesave");
 
-const loadGameButton = document.createElement('button');
-const loadGameButtonValue = document.createTextNode('CARREGAR JOGO');
-loadGameButton.appendChild(loadGameButtonValue);
-document.body.appendChild(loadGameButton);
+    const converted = new XMLSerializer().serializeToString(xmlFile);
 
-loadGameButton.addEventListener('click', () => {
-  const options = {
-    types: [
-      {
-        description: 'File',
-        accept: {
-          'application/xml': ['.xml']
-        }
-      },
-    ],
-    excludeAcceptAllOption: true,
-    multiple: false
-  };
+    xhttp.send(converted);
+  } catch (e) {
 
-  window.showOpenFilePicker(options).all( bosta => { console.log(bosta) });
-});
+  }
 
-const saveGameButton = document.createElement('button');
-saveGameButton.appendChild(document.createTextNode('SAVE GAME'));
-document.body.appendChild(saveGameButton);
-
-saveGameButton.addEventListener('click', async () => {
-  const options = {
-    types: [
-      {
-        description: 'File',
-        accept: {
-          'application/xml': ['.xml']
-        }
-      },
-    ],
-    excludeAcceptAllOption: true,
-    multiple: false
-  };
-
-  const fileHandle = await window.showSaveFilePicker(options);
-  writeFile(fileHandle, savegame(game.state));
-});
-
-async function writeFile(fileHandle, contents) {
-  const cont = new XMLSerializer().serializeToString(contents);
-  const writable = await fileHandle.createWritable();
-  await writable.write(cont);
-  await writable.close();
-}
-
-async function readFile(fileHandle) {
-  var handle = await fileHandle.getFile();
-  console.log(handle);
+  return xmlFile;
 }

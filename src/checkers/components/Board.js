@@ -207,10 +207,10 @@ export class Board extends PIXI.Container {
 
         this._currentTargetCoordinate = coordinate;
 
-        this.emit(GameEvents.ON_CLICK_TARGET);
         this._board[oldLine][oldColumn] = undefined;
         this._currentPiece.coordinate = coordinate;
         this._board[line][column] = this._currentPiece;
+        this.emit(GameEvents.ON_CLICK_TARGET);
     }
 
     _drawTile (line, column, color) {
